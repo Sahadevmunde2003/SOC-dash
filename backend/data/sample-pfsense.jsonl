@@ -1,0 +1,2 @@
+{"timestamp":"2026-10-18T12:18:00Z","sensor":"pfsense-lab","action":"pass","protocol":"tcp","src_ip":"10.10.20.15","src_port":52144,"dst_ip":"203.0.113.42","dst_port":443}
+{"timestamp":"2026-10-18T11:58:00Z","sensor":"pfsense-lab","action":"block","protocol":"tcp","src_ip":"198.51.100.77","src_port":41002,"dst_ip":"10.10.20.10","dst_port":22}
