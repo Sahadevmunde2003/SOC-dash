@@ -1,5 +1,5 @@
 """Terminal client for the Sentinel SOC demo API."""
-import argparse, json, urllib.error, urllib.request
+import argparse, json, urllib.error, urllib.parse, urllib.request
 BASE = "http://127.0.0.1:5000/api"
 def call(path, method="GET", payload=None):
     data = json.dumps(payload).encode() if payload is not None else None
