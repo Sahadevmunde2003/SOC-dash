@@ -1,0 +1,5 @@
+Oct 18 12:59:03 ubuntu-dmz sshd[2241]: Failed password for labuser from 192.0.2.24 port 51231 ssh2
+Oct 18 12:59:18 ubuntu-dmz sshd[2242]: Failed password for labuser from 192.0.2.24 port 51242 ssh2
+Oct 18 12:59:31 ubuntu-dmz sshd[2243]: Failed password for invalid user admin from 192.0.2.24 port 51250 ssh2
+Oct 18 13:00:02 ubuntu-dmz sshd[2244]: Failed password for labuser from 192.0.2.24 port 51264 ssh2
+Oct 18 13:01:11 ubuntu-dmz sshd[2245]: Accepted publickey for labuser from 10.10.20.5 port 49220 ssh2
