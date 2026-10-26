@@ -55,6 +55,7 @@ SOC-dash/
 │   ├── ARCHITECTURE.md
 │   ├── DETECTION-RULES.md
 │   ├── ROADMAP.md
+│   ├── RUNNING-KALI-WINDOWS.md
 │   └── TELEMETRY-INGESTION.md
 └── .github/workflows/ci.yml
 \`\`\`
@@ -66,43 +67,15 @@ SOC-dash/
 
 ## Run locally
 
-### 1. Start the backend
+**Platform-specific setup:** follow [docs/RUNNING-KALI-WINDOWS.md](docs/RUNNING-KALI-WINDOWS.md) for step-by-step instructions for both Kali Linux and Windows PowerShell, including installation checks, virtual environment setup, starting the backend and frontend in separate terminals, sample telemetry ingestion, CLI usage, tests, and troubleshooting.
 
-From the repository root:
+Quick start after cloning the repository:
 
-\`\`\`bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m app.main
-\`\`\`
+1. Start the Flask backend from the `backend/` directory: create and activate a Python virtual environment, install `requirements.txt`, then run `python -m app.main`.
+2. In a second terminal, start the frontend from `frontend/` with `npm install` and `npm run dev`.
+3. Open http://127.0.0.1:5173 and verify the API at http://127.0.0.1:5000/api/health.
 
-Health endpoint: http://127.0.0.1:5000/api/health
-
-### 2. Start the frontend
-
-Open a second terminal from the repository root:
-
-\`\`\`bash
-cd frontend
-npm install
-npm run dev
-\`\`\`
-
-Open http://localhost:5173.
-
-### 3. Use the CLI
-
-With the backend running, from the backend/ directory:
-
-\`\`\`bash
-python socctl.py health
-python socctl.py alerts --query phishing
-python socctl.py status SOC-2026-1042 Investigating
-\`\`\`
-
-Use python socctl.py --help for available commands.
+The activation command differs by platform; use the linked guide rather than copying the Linux-only commands into Windows PowerShell.
 
 ## Raw telemetry ingestion
 
