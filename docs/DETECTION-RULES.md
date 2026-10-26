@@ -1,31 +1,35 @@
-# Detection Rules — Initial Backlog
+# Detection Rules
 
-These are candidate rules for the lab telemetry milestone, not claims that the current MVP detects them from raw logs.
+The first two rules below are implemented in \`backend/app/telemetry.py\` for parsed lab fixtures. They are starter heuristics, not production detections. Rule thresholds are currently fixed defaults.
 
-## Rule 1: SSH authentication burst
+## SSH authentication burst — implemented
 
-- **Source:** Ubuntu /var/log/auth.log or journald SSH service logs
-- **Condition:** 5 or more failed SSH authentication attempts from one source IP within 2 minutes
+- **Rule ID:** \`SSH-BRUTE-001\`
+- **Source:** Ubuntu SSH authentication log
+- **Condition:** 5 or more failed SSH authentication attempts from one source IP within 120 seconds
 - **Severity:** High
 - **ATT&CK:** T1110 — Brute Force
 - **Triage:** Check source address, target account, time window, and whether a successful login followed the failures.
+- **False positives:** Misconfigured clients, stale automation credentials, or a user repeatedly mistyping a password.
 
-## Rule 2: Repeated denied inbound connections
+## Repeated blocked connections — implemented
 
-- **Source:** pfSense firewall log
-- **Condition:** Multiple denied inbound connections to different destination ports from the same source in a short window
-- **Severity:** Low to Medium, depending on volume and exposure
-- **ATT&CK:** T1046 — Network Service Discovery (only if the evidence supports a discovery hypothesis)
+- **Rule ID:** \`PFSENSE-DENY-BURST-001\`
+- **Source:** pfSense JSONL firewall events
+- **Condition:** 5 or more block/reject records from one source IP in the submitted batch
+- **Severity:** Low
+- **ATT&CK:** T1046 — Network Service Discovery (hypothesis only; confirm the destination-port spread and context)
 - **Triage:** Confirm action, interface, destination host, port spread, and whether the traffic was expected.
+- **False positives:** Normal internet background noise, scanners used by the lab owner, and repeated legitimate connection failures.
 
-## Rule 3: Unusual outbound destination
+## Unusual outbound destination — backlog
 
 - **Source:** pfSense, Zeek, or Suricata events
 - **Condition:** New or rare outbound destination, unusual port, or policy violation
 - **Severity:** Medium by default; raise only with supporting evidence
 - **Triage:** Review process/host owner, DNS resolution, destination reputation, TLS metadata, and approved change windows.
 
-## Rule 4: Suspicious email link
+## Suspicious email link — integration backlog
 
 - **Source:** Authorized phishing-analysis workflow
 - **Condition:** URL host mismatch, suspicious redirect chain, failed sender authentication, or known malicious IOC
