@@ -1,18 +1,21 @@
 # Roadmap
 
-## Milestone 1 — Analyst console (current)
+## Milestone 1 — Analyst console
 - [x] React + Vite dark SOC dashboard
-- [x] Flask health, summary, alert list, detail, status, and event-ingestion endpoints
+- [x] Flask health, summary, alert list, detail, status, and normalized-event ingestion endpoints
 - [x] Synthetic alert dataset and sample lab log fixtures
 - [x] Terminal CLI
 - [x] API tests and initial documentation
 
 ## Milestone 2 — Real lab telemetry
-- [ ] Parse Ubuntu SSH authentication logs
-- [ ] Parse pfSense firewall JSON / CSV exports
-- [ ] Normalize events and validate timestamps / IP addresses
-- [ ] Implement configurable failed-login and outbound-connection rules
-- [ ] Add ingestion results, parser errors, and detection test fixtures
+- [x] Parse Ubuntu SSH authentication logs
+- [x] Parse pfSense JSONL firewall exports
+- [x] Normalize events and validate timestamps / IP addresses / firewall actions
+- [x] Implement starter failed-login and repeated-block rules
+- [x] Add ingestion results, parser errors, and detection test fixtures
+- [x] Document raw ingestion API usage and limitations
+- [ ] Add configurable thresholds and additional export-format adapters
+- [ ] Add live/tail ingestion from authorized lab hosts (opt-in, secured)
 
 ## Milestone 3 — Case management
 - [ ] Persist alerts, events, and notes in SQLite
