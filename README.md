@@ -1,56 +1,63 @@
 # Sentinel SOC
 
-A portfolio-grade Security Operations Center (SOC) dashboard built with React + Vite and Flask. The first milestone ships a dark SIEM-style analyst console, a REST API, synthetic alerts, incident status workflows, a terminal CLI, sample lab logs, and API tests.
+A portfolio-grade Security Operations Center (SOC) dashboard built with React + Vite and Flask. The MVP includes a dark SIEM-style analyst console, REST API, synthetic alerts, incident status workflow, terminal CLI, and raw lab telemetry parsers for Ubuntu SSH authentication logs and pfSense JSONL exports.
 
-> **Lab/demo notice:** the included alerts and indicators are synthetic. The app is not a production SIEM and does not claim live monitoring until real telemetry sources are configured.
+> **Lab/demo notice:** included alerts and indicators are synthetic. This is not a production SIEM and does not claim live monitoring. Raw telemetry must be submitted to the local API; the project does not currently tail remote hosts or connect directly to pfSense.
 
 ## Features
 
 - Security overview: alert counts, severity distribution, and alert activity.
 - Alert triage: search, severity/source filters, and investigation details.
 - Incident workflow: update case status and add analyst notes.
-- IOC-focused event details and MITRE ATT&CK technique references.
-- Flask API for health, summaries, alerts, status updates, and event ingestion.
-- Python CLI for terminal-based health checks, alert searches, status updates, and ingestion.
+- Flask API for health, summaries, alerts, status updates, normalized event ingestion, and raw lab-log ingestion.
+- Ubuntu auth.log parser for SSH failed/successful login events.
+- pfSense JSONL parser with timestamp, IP address, and action validation.
+- Starter detections for SSH authentication bursts and repeated firewall blocks.
+- Per-line parser errors returned alongside successfully parsed records.
+- Python CLI for terminal-based health checks, alert searches, status updates, and normalized event ingestion.
 - Sample pfSense-style JSONL events and Ubuntu authentication log fixtures.
-- Pytest API tests and a roadmap for real lab telemetry.
+- Pytest-compatible API and telemetry parser tests.
 
 ## Architecture
 
-```text
+\`\`\`text
 React + Vite (5173)
        │ REST / JSON
        ▼
-Flask API (5000) ─── In-memory demo store
+Flask API (5000) ─── In-memory demo alert store
        ▲
        ├── Python SOC CLI
-       └── Future: pfSense / Ubuntu / Wazuh / Zeek / Suricata adapters
-```
+       ├── Ubuntu auth.log text ingestion
+       └── pfSense JSONL ingestion
+\`\`\`
 
 ## Repository layout
 
-```text
-sentinel-soc/
+\`\`\`text
+SOC-dash/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── data.py
-│   │   └── main.py
+│   │   ├── main.py
+│   │   └── telemetry.py
 │   ├── data/
 │   │   ├── sample-auth.log
 │   │   └── sample-pfsense.jsonl
-│   ├── tests/test_api.py
+│   ├── tests/
 │   ├── requirements.txt
 │   └── socctl.py
 ├── frontend/
 │   ├── index.html
 │   ├── package.json
 │   └── src/
-│       ├── main.jsx
-│       └── styles.css
-├── .gitignore
-└── README.md
-```
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── DETECTION-RULES.md
+│   ├── ROADMAP.md
+│   └── TELEMETRY-INGESTION.md
+└── .github/workflows/ci.yml
+\`\`\`
 
 ## Requirements
 
@@ -61,21 +68,15 @@ sentinel-soc/
 
 ### 1. Start the backend
 
-Linux/macOS (including Kali Linux):
+From the repository root:
 
-```bash
+\`\`\`bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m app.main
-```
-
-Windows PowerShell activation:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
+\`\`\`
 
 Health endpoint: http://127.0.0.1:5000/api/health
 
@@ -83,63 +84,90 @@ Health endpoint: http://127.0.0.1:5000/api/health
 
 Open a second terminal from the repository root:
 
-```bash
+\`\`\`bash
 cd frontend
 npm install
 npm run dev
-```
+\`\`\`
 
 Open http://localhost:5173.
 
 ### 3. Use the CLI
 
-With the backend running, from the `backend/` directory:
+With the backend running, from the backend/ directory:
 
-```bash
+\`\`\`bash
 python socctl.py health
 python socctl.py alerts --query phishing
 python socctl.py status SOC-2026-1042 Investigating
-```
+\`\`\`
 
-Use `python socctl.py --help` for available commands.
+Use python socctl.py --help for available commands.
+
+## Raw telemetry ingestion
+
+Both endpoints accept JSON with a content string. They return parsed events, per-line errors, and detections; detections are inserted into the current in-memory alert list.
+
+### Ubuntu SSH authentication log
+
+\`\`\`bash
+curl -X POST http://127.0.0.1:5000/api/ingest/auth-log \\
+  -H 'Content-Type: application/json' \\
+  --data-binary "$(python -c 'import json; print(json.dumps({"content": open("backend/data/sample-auth.log").read()}))')"
+\`\`\`
+
+The starter rule SSH-BRUTE-001 flags five or more failed SSH logins from one source IP within 120 seconds.
+
+### pfSense JSONL
+
+\`\`\`bash
+curl -X POST http://127.0.0.1:5000/api/ingest/pfsense \\
+  -H 'Content-Type: application/json' \\
+  --data-binary "$(python -c 'import json; print(json.dumps({"content": open("backend/data/sample-pfsense.jsonl").read()}))')"
+\`\`\`
+
+The parser requires an ISO-8601 timestamp, valid source/destination IP addresses, and an action of pass, block, or reject. The starter rule PFSENSE-DENY-BURST-001 flags five or more blocked/rejected records from one source in the submitted batch.
+
+See [docs/TELEMETRY-INGESTION.md](docs/TELEMETRY-INGESTION.md) for full request/response details and limitations.
 
 ## API endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/health` | API status |
-| GET | `/api/summary` | Dashboard KPIs and chart data |
-| GET | `/api/alerts` | Search/filter alerts |
-| GET | `/api/alerts/<id>` | Alert details |
-| PATCH | `/api/alerts/<id>/status` | Update incident status |
-| POST | `/api/events` | Ingest a normalized lab event |
+| GET | /api/health | API status |
+| GET | /api/summary | Dashboard KPIs and chart data |
+| GET | /api/alerts | Search/filter alerts |
+| GET | /api/alerts/<id> | Alert details |
+| PATCH | /api/alerts/<id>/status | Update incident status |
+| POST | /api/events | Ingest a normalized lab event |
+| POST | /api/ingest/auth-log | Parse Ubuntu SSH auth log text |
+| POST | /api/ingest/pfsense | Parse pfSense JSONL text |
 
-Check the Flask route definitions for exact request and response schemas.
+## Test
+
+From the repository root:
+
+\`\`\`bash
+cd backend
+PYTHONPATH=. python -m pytest
+\`\`\`
+
+The repository includes a GitHub Actions workflow for Python tests and frontend build checks. Confirm the latest workflow result on GitHub before treating the project as verified.
 
 ## Data and security notes
 
 - The current backend uses an in-memory store; changes reset when the API restarts.
+- Parsed raw events are returned in the ingestion response and are not persisted.
 - Sample IP addresses are documentation ranges and should not be treated as real threat intelligence.
+- The API binds to loopback by default. Do not expose it directly to an untrusted network.
 - Never ingest secrets, personal data, or real malicious files into a public portfolio repository.
 - Keep API keys in environment variables; do not commit them.
 - Only test against systems and networks you own or are authorized to assess.
 
 ## Roadmap
 
-- [ ] Persist events, alerts, and cases in SQLite.
-- [ ] Parse Ubuntu SSH/authentication logs into normalized events.
-- [ ] Parse pfSense firewall exports and add validation/error handling.
-- [ ] Add configurable detection rules for repeated failed logins and suspicious outbound connections.
-- [ ] Correlate alerts into a unified incident timeline.
-- [ ] Reuse the existing phishing-analysis workflow for header analysis, URL/IOC extraction, and report generation.
-- [ ] Add role-aware analyst activity history and exportable incident reports.
-- [ ] Add optional Wazuh, Zeek, or Suricata integration.
-- [ ] Add CI checks and a deployment guide.
-
-## Development status
-
-Milestone 1 is a local portfolio MVP. Automated tests are included; run them with `pytest` from `backend/`. Validate frontend dependencies with `npm install` and build with `npm run build` before deployment.
+See [docs/ROADMAP.md](docs/ROADMAP.md). Next priorities are SQLite persistence, incident timelines, phishing-analysis integration, and optional Wazuh / Zeek / Suricata adapters.
 
 ## License
 
-Choose and add a license before accepting contributions or redistributing the project.
+No license has been added yet. Add one before accepting contributions or redistributing the project.
